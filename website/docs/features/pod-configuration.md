@@ -200,7 +200,7 @@ On OpenShift with `restricted-v2` SCC, containers run with random UIDs that have
 directory in `/etc/passwd`. This caused `git-init` containers to crash with
 `"failed to setup authentication: exit status 255"` when trying to write `~/.gitconfig`.
 
-KubeOpenCode v0.2.0+ automatically sets `HOME=/tmp` and `SHELL=/bin/bash` on `git-init` and
+KubeOpenCode v0.1.2+ automatically sets `HOME=/tmp` and `SHELL=/bin/bash` on `git-init` and
 `git-sync` containers (the same fix already applied to the executor container since v0.1.0).
 
 If you are running an older version or a custom system image, you can apply the fix via

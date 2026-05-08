@@ -3658,36 +3658,6 @@ func TestApplySystemDefaults(t *testing.T) {
 	})
 }
 
-// hasEnvVar checks if a container has an env var with the given name and value.
-func hasEnvVar(envs []corev1.EnvVar, name, value string) bool {
-	for _, e := range envs {
-		if e.Name == name && e.Value == value {
-			return true
-		}
-	}
-	return false
-}
-
-// findInitContainer returns the init container with the given name, or nil.
-func findInitContainer(pod *corev1.Pod, name string) *corev1.Container {
-	for i := range pod.Spec.InitContainers {
-		if pod.Spec.InitContainers[i].Name == name {
-			return &pod.Spec.InitContainers[i]
-		}
-	}
-	return nil
-}
-
-// hasVolumeMount checks if a container has a volume mount with the given name and mountPath.
-func hasVolumeMount(mounts []corev1.VolumeMount, name, mountPath string) bool {
-	for _, m := range mounts {
-		if m.Name == name && m.MountPath == mountPath {
-			return true
-		}
-	}
-	return false
-}
-
 func TestBuildGitInitContainer_HomeEnv(t *testing.T) {
 	gm := gitMount{
 		repository: "https://gitlab.example.com/repo.git",
@@ -3719,6 +3689,33 @@ func TestBuildGitSyncSidecar_HomeEnv(t *testing.T) {
 	}
 	if !hasEnvVar(c.Env, "SHELL", DefaultShell) {
 		t.Errorf("git-sync sidecar missing SHELL=%s env var for SCC compatibility", DefaultShell)
+	}
+}
+
+func TestBuildContextInitContainer_HomeEnv(t *testing.T) {
+	sysCfg := defaultSystemConfig()
+	c := buildContextInitContainer("/workspace", nil, nil, sysCfg)
+
+	if !hasEnvVar(c.Env, "HOME", DefaultHomeDir) {
+		t.Errorf("context-init container missing HOME=%s env var for SCC compatibility", DefaultHomeDir)
+	}
+	if !hasEnvVar(c.Env, "SHELL", DefaultShell) {
+		t.Errorf("context-init container missing SHELL=%s env var for SCC compatibility", DefaultShell)
+	}
+}
+
+func TestBuildPluginInitContainer_HomeEnv(t *testing.T) {
+	sysCfg := defaultSystemConfig()
+	plugins := []kubeopenv1alpha1.PluginSpec{
+		{Name: "test-plugin@1.0.0"},
+	}
+	c := buildPluginInitContainer(plugins, sysCfg)
+
+	if !hasEnvVar(c.Env, "HOME", DefaultHomeDir) {
+		t.Errorf("plugin-init container missing HOME=%s env var for SCC compatibility", DefaultHomeDir)
+	}
+	if !hasEnvVar(c.Env, "SHELL", DefaultShell) {
+		t.Errorf("plugin-init container missing SHELL=%s env var for SCC compatibility", DefaultShell)
 	}
 }
 
@@ -3825,7 +3822,7 @@ func TestBuildPod_SystemContainers_GitInit(t *testing.T) {
 
 	pod := buildPod(task, "test-pod", cfg, nil, nil, nil, gitMounts, defaultSystemConfig(), "")
 
-	gitInit := findInitContainer(pod, "git-init-0")
+	gitInit := findPodInitContainer(pod, "git-init-0")
 	if gitInit == nil {
 		t.Fatal("git-init-0 container not found")
 	}
@@ -3837,7 +3834,7 @@ func TestBuildPod_SystemContainers_GitInit(t *testing.T) {
 	}
 
 	// Verify the override did NOT bleed into opencode-init
-	openCodeInit := findInitContainer(pod, "opencode-init")
+	openCodeInit := findPodInitContainer(pod, "opencode-init")
 	if openCodeInit == nil {
 		t.Fatal("opencode-init container not found")
 	}
@@ -3866,7 +3863,7 @@ func TestBuildPod_SystemContainers_OpenCodeInit(t *testing.T) {
 
 	pod := buildPod(task, "test-pod", cfg, nil, nil, nil, nil, defaultSystemConfig(), "")
 
-	openCodeInit := findInitContainer(pod, "opencode-init")
+	openCodeInit := findPodInitContainer(pod, "opencode-init")
 	if openCodeInit == nil {
 		t.Fatal("opencode-init container not found")
 	}
@@ -3907,7 +3904,7 @@ func TestBuildPod_SystemContainers_ExtraVolumeMounts(t *testing.T) {
 
 	pod := buildPod(task, "test-pod", cfg, nil, nil, nil, gitMounts, defaultSystemConfig(), "")
 
-	gitInit := findInitContainer(pod, "git-init-0")
+	gitInit := findPodInitContainer(pod, "git-init-0")
 	if gitInit == nil {
 		t.Fatal("git-init-0 container not found")
 	}

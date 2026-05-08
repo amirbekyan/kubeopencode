@@ -34,15 +34,15 @@ type agentConfig struct {
 	serviceAccountName string
 	maxConcurrentTasks *int32
 	quota              *kubeopenv1alpha1.QuotaConfig
-	caBundle           *kubeopenv1alpha1.CABundleConfig         // Custom CA bundle configuration (nil = no custom CA)
-	proxy              *kubeopenv1alpha1.ProxyConfig            // HTTP/HTTPS proxy configuration (nil = no proxy)
-	imagePullSecrets   []corev1.LocalObjectReference            // Image pull secrets for private registries
-	port               int32                                    // Server port (default 4096)
-	extraPorts         []kubeopenv1alpha1.ExtraPort             // Additional ports to expose on Service/Deployment
-	persistence        *kubeopenv1alpha1.PersistenceConfig      // Persistence configuration
-	suspend            bool                                     // Whether Agent is suspended
-	serverReady        bool                                     // Whether Agent server is ready (from status)
-	extraEnv           []corev1.EnvVar                          // Extra env vars injected into ALL containers
+	caBundle           *kubeopenv1alpha1.CABundleConfig           // Custom CA bundle configuration (nil = no custom CA)
+	proxy              *kubeopenv1alpha1.ProxyConfig              // HTTP/HTTPS proxy configuration (nil = no proxy)
+	imagePullSecrets   []corev1.LocalObjectReference              // Image pull secrets for private registries
+	port               int32                                      // Server port (default 4096)
+	extraPorts         []kubeopenv1alpha1.ExtraPort               // Additional ports to expose on Service/Deployment
+	persistence        *kubeopenv1alpha1.PersistenceConfig        // Persistence configuration
+	suspend            bool                                       // Whether Agent is suspended
+	serverReady        bool                                       // Whether Agent server is ready (from status)
+	extraEnv           []corev1.EnvVar                            // Extra env vars injected into ALL containers
 	systemContainers   *kubeopenv1alpha1.SystemContainerOverrides // Per-container-type env/mount overrides
 }
 
@@ -563,7 +563,11 @@ type contextInitDirMapping struct {
 // This enables agents to create files in the workspace directory, which is not possible with direct ConfigMap mounts.
 // The init container uses /kubeopencode context-init command which reads configuration from environment variables.
 func buildContextInitContainer(workspaceDir string, fileMounts []fileMount, dirMounts []dirMount, sysCfg systemConfig) corev1.Container {
+	// HOME and SHELL are set for SCC (Security Context Constraints) compatibility.
+	// See buildGitInitContainer comment and ADR 0006/0038 for details.
 	envVars := []corev1.EnvVar{
+		{Name: "HOME", Value: DefaultHomeDir},
+		{Name: "SHELL", Value: DefaultShell},
 		{Name: "WORKSPACE_DIR", Value: workspaceDir},
 		{Name: "CONFIGMAP_PATH", Value: "/configmap-files"},
 	}
@@ -634,7 +638,11 @@ func buildPluginInitContainer(plugins []kubeopenv1alpha1.PluginSpec, sysCfg syst
 		Image:           sysCfg.systemImage,
 		ImagePullPolicy: sysCfg.systemImagePullPolicy,
 		Command:         []string{"/kubeopencode", "plugin-init"},
+		// HOME and SHELL are set for SCC compatibility — npm install may write to ~/.npmrc.
+		// See buildGitInitContainer comment and ADR 0006/0038 for details.
 		Env: []corev1.EnvVar{
+			{Name: "HOME", Value: DefaultHomeDir},
+			{Name: "SHELL", Value: DefaultShell},
 			{Name: "PLUGIN_PACKAGES", Value: string(packagesJSON)},
 			{Name: "PLUGIN_DIR", Value: DefaultPluginsMountBase},
 		},
@@ -896,6 +904,47 @@ func applyInitContainerOverrides(c *corev1.Container, overrides *kubeopenv1alpha
 	}
 	c.Env = append(c.Env, overrides.ExtraEnv...)
 	c.VolumeMounts = append(c.VolumeMounts, overrides.ExtraVolumeMounts...)
+}
+
+// applyExtraEnvAndSystemOverrides applies user-defined extraEnv (global) and per-container-type
+// systemContainers overrides to init containers and executor env vars. This function is shared
+// between buildPod (Task Pods) and BuildServerDeployment (Agent Deployments) to avoid duplication.
+//
+// Application order (most-specific-wins):
+//  1. Global extraEnv → ALL containers (init + executor)
+//  2. Per-container-type systemContainers → matched init containers only
+//
+// Note: git-sync sidecars are NOT handled here because they are only present in Agent Deployments
+// (not Task Pods). Server builder applies git-sync overrides separately after calling this function.
+func applyExtraEnvAndSystemOverrides(initContainers []corev1.Container, executorEnvVars *[]corev1.EnvVar, cfg agentConfig) {
+	// Apply user-defined extra env vars to ALL containers (init + executor).
+	// These are applied last so they can override any controller-managed defaults.
+	if len(cfg.extraEnv) > 0 {
+		for i := range initContainers {
+			initContainers[i].Env = append(initContainers[i].Env, cfg.extraEnv...)
+		}
+		*executorEnvVars = append(*executorEnvVars, cfg.extraEnv...)
+	}
+
+	// Apply per-container-type overrides from systemContainers.
+	// These are applied after global extraEnv for maximum specificity.
+	if cfg.systemContainers != nil {
+		sc := cfg.systemContainers
+		for i := range initContainers {
+			switch initContainers[i].Name {
+			case "opencode-init":
+				applyInitContainerOverrides(&initContainers[i], sc.OpenCodeInit)
+			case "context-init":
+				applyInitContainerOverrides(&initContainers[i], sc.ContextInit)
+			case "plugin-init":
+				applyInitContainerOverrides(&initContainers[i], sc.PluginInit)
+			}
+			// git-init-* containers: match by prefix
+			if strings.HasPrefix(initContainers[i].Name, "git-init-") {
+				applyInitContainerOverrides(&initContainers[i], sc.GitInit)
+			}
+		}
+	}
 }
 
 // buildPod creates a Pod object for the task with context mounts.
@@ -1262,34 +1311,8 @@ func buildPod(task *kubeopenv1alpha1.Task, podName string, cfg agentConfig, cont
 		envVars = append(envVars, proxyEnvs...)
 	}
 
-	// Apply user-defined extra env vars to ALL containers (init + executor).
-	// These are applied last so they can override any controller-managed defaults.
-	if len(cfg.extraEnv) > 0 {
-		for i := range initContainers {
-			initContainers[i].Env = append(initContainers[i].Env, cfg.extraEnv...)
-		}
-		envVars = append(envVars, cfg.extraEnv...)
-	}
-
-	// Apply per-container-type overrides from systemContainers.
-	// These are applied after global extraEnv for maximum specificity.
-	if cfg.systemContainers != nil {
-		sc := cfg.systemContainers
-		for i := range initContainers {
-			switch initContainers[i].Name {
-			case "opencode-init":
-				applyInitContainerOverrides(&initContainers[i], sc.OpenCodeInit)
-			case "context-init":
-				applyInitContainerOverrides(&initContainers[i], sc.ContextInit)
-			case "plugin-init":
-				applyInitContainerOverrides(&initContainers[i], sc.PluginInit)
-			}
-			// git-init-* containers: match by prefix
-			if strings.HasPrefix(initContainers[i].Name, "git-init-") {
-				applyInitContainerOverrides(&initContainers[i], sc.GitInit)
-			}
-		}
-	}
+	// Apply user-defined extraEnv and per-container-type systemContainers overrides.
+	applyExtraEnvAndSystemOverrides(initContainers, &envVars, cfg)
 
 	// Build pod labels - start with base labels
 	podLabels := map[string]string{
