@@ -741,7 +741,7 @@ type SystemContainerOverrides struct {
 // These settings apply to the Agent's Deployment and to Task Pods.
 type AgentPodSpec struct {
 	// Labels defines additional labels to add to the agent pod.
-	// These labels are applied to the Job's pod template and enable integration with:
+	// These labels are applied to the Pod template and enable integration with:
 	//   - NetworkPolicy podSelector for network isolation
 	//   - Service selector for service discovery
 	//   - PodMonitor/ServiceMonitor for Prometheus monitoring
@@ -923,7 +923,7 @@ type AgentPodSpec struct {
 }
 
 // PodScheduling defines scheduling configuration for agent pods.
-// All fields are applied directly to the Job's pod template.
+// All fields are applied directly to the Pod template.
 type PodScheduling struct {
 	// NodeSelector specifies a selector for scheduling pods to specific nodes.
 	// The pod will only be scheduled to nodes that have all the specified labels.

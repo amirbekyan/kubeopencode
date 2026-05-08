@@ -19,12 +19,12 @@ const (
 	TaskPhaseQueued TaskPhase = "Queued"
 	// TaskPhaseRunning means the task is currently executing
 	TaskPhaseRunning TaskPhase = "Running"
-	// TaskPhaseCompleted means the task execution finished (Job exited with code 0).
+	// TaskPhaseCompleted means the task execution finished (Pod exited with code 0).
 	// This indicates the agent completed its work, not necessarily that the task "succeeded".
 	// The actual outcome should be determined by examining the agent's output.
 	TaskPhaseCompleted TaskPhase = "Completed"
 	// TaskPhaseFailed means the task had an infrastructure failure
-	// (e.g., Job crashed, unable to schedule, missing Agent).
+	// (e.g., Pod crashed, unable to schedule, missing Agent).
 	TaskPhaseFailed TaskPhase = "Failed"
 )
 

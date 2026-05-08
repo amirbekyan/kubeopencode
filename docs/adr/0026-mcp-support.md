@@ -1,4 +1,4 @@
-# ADR 0026: MCP Server Support in Agent API
+# ADR 0026b: MCP Server Support in Agent API
 
 ## Status
 

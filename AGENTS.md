@@ -18,7 +18,7 @@ KubeOpenCode brings Agentic AI capabilities into the Kubernetes ecosystem. By le
 - Use Helm/Kustomize for batch operations (multiple Tasks)
 - Event-driven triggers delegated to [Argo Events](https://argoproj.github.io/argo-events/)
 
-**Unified Binary:** Single container image (`ghcr.io/kubeopencode/kubeopencode`) with subcommands: `controller`, `git-init`, `context-init`, `url-fetch`. Image constant: `internal/controller/pod_builder.go` → `DefaultKubeOpenCodeImage`.
+**Unified Binary:** Single container image (`ghcr.io/kubeopencode/kubeopencode`) with subcommands: `controller`, `server`, `git-init`, `git-sync`, `context-init`, `url-fetch`, `plugin-init`, `task-submit`. Image constant: `internal/controller/pod_builder.go` → `DefaultKubeOpenCodeImage`.
 
 ## Core Concepts
 
@@ -61,7 +61,7 @@ Key Agent spec fields: `templateRef`, `profile`, `agentImage`, `executorImage`, 
 
 ### AgentTemplate
 
-Reusable blueprint serving two roles: (1) base configuration for Agents via `spec.templateRef.name`, (2) blueprint for ephemeral Tasks via `Task.spec.templateRef`. Merge strategy: Agent wins for scalars; Agent **replaces** template for lists. Agent-only fields: `profile`, `port`, `persistence`, `suspend`, `standby`, `templateRef`.
+Reusable blueprint serving two roles: (1) base configuration for Agents via `spec.templateRef.name`, (2) blueprint for ephemeral Tasks via `Task.spec.templateRef`. Merge strategy: Agent wins for scalars; Agent **replaces** template for lists. Agent-only fields: `profile`, `port`, `persistence`, `suspend`, `standby`, `share`, `templateRef`.
 
 > See `website/docs/architecture.md` for AgentTemplate spec fields and merge details.
 
@@ -89,7 +89,7 @@ Automatic cleanup via `KubeOpenCodeConfig` (cluster-scoped singleton named `clus
 
 ### CronTask (Scheduled Execution)
 
-CronTask creates Tasks on a cron schedule. Key fields: `schedule` (cron expression), `timeZone`, `concurrencyPolicy` (Allow/Forbid/Replace, default Forbid), `maxRetainedTasks` (blocks creation when reached, default 10), `suspend`, `taskTemplate`.
+CronTask creates Tasks on a cron schedule. Key fields: `schedule` (cron expression), `timeZone`, `concurrencyPolicy` (Allow/Forbid/Replace, default Forbid), `startingDeadlineSeconds` (optional, seconds to wait before skipping a missed schedule), `maxRetainedTasks` (blocks creation when reached, default 10), `suspend`, `taskTemplate`.
 
 - Manual trigger: annotation `kubeopencode.io/trigger=true` or API `POST /trigger`
 - CronTask does NOT delete Tasks — cleanup is handled by global KubeOpenCodeConfig
@@ -219,10 +219,10 @@ make agent-buildx AGENT=opencode   # Remote (multi-arch)
 ## Key Files and Directories
 
 ```
-api/v1alpha1/             # CRD type definitions (types.go, agenttemplate_types.go)
-cmd/kubeopencode/         # Unified binary (controller, git-init, context-init, url-fetch)
+api/v1alpha1/             # CRD type definitions (agent_types.go, task_types.go, crontask_types.go, config_types.go, agenttemplate_types.go, context_types.go, skill_types.go)
+cmd/kubeopencode/         # Unified binary (controller, server, git-init, git-sync, context-init, url-fetch, plugin-init, task-submit)
 cmd/kubeoc/               # CLI client (kubeoc get agents, kubeoc agent attach, etc.)
-internal/controller/      # Reconcilers (task, agent, agenttemplate, pod_builder, context_resolver, template_merge)
+internal/controller/      # Reconcilers (task_controller, agent_controller, agenttemplate_controller, crontask_controller, pod_builder, server_builder, context_processor, skill_processor, template_merge, share, git_sync, opencode_client, heartbeat, metrics)
 deploy/crds/              # Generated CRD YAMLs
 deploy/local-dev/         # Local development manifests and examples (setup instructions in CONTRIBUTING.md)
 charts/kubeopencode/      # Helm chart
