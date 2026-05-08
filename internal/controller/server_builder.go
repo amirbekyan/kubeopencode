@@ -491,33 +491,10 @@ func BuildServerDeployment(agent *kubeopenv1alpha1.Agent, agentCfg agentConfig, 
 		envVars = append(envVars, proxyEnvs...)
 	}
 
-	// Apply user-defined extra env vars to ALL containers (init + executor).
-	// These are applied last so they can override any controller-managed defaults.
-	if len(agentCfg.extraEnv) > 0 {
-		for i := range initContainers {
-			initContainers[i].Env = append(initContainers[i].Env, agentCfg.extraEnv...)
-		}
-		envVars = append(envVars, agentCfg.extraEnv...)
-	}
-
-	// Apply per-container-type overrides from systemContainers.
-	// These are applied after global extraEnv for maximum specificity.
-	if agentCfg.systemContainers != nil {
-		sc := agentCfg.systemContainers
-		for i := range initContainers {
-			switch initContainers[i].Name {
-			case "opencode-init":
-				applyInitContainerOverrides(&initContainers[i], sc.OpenCodeInit)
-			case "context-init":
-				applyInitContainerOverrides(&initContainers[i], sc.ContextInit)
-			case "plugin-init":
-				applyInitContainerOverrides(&initContainers[i], sc.PluginInit)
-			}
-			if strings.HasPrefix(initContainers[i].Name, "git-init-") {
-				applyInitContainerOverrides(&initContainers[i], sc.GitInit)
-			}
-		}
-	}
+	// Apply user-defined extraEnv and per-container-type systemContainers overrides.
+	// Note: git-sync sidecar overrides are applied separately below (after sidecar construction)
+	// because sidecars are not init containers and are only present in Agent Deployments.
+	applyExtraEnvAndSystemOverrides(initContainers, &envVars, agentCfg)
 
 	// Build the serve command.
 	// When context-init handles config file writing, we don't need inline heredoc.
