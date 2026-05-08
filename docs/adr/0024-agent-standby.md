@@ -64,4 +64,4 @@ The task controller requires no special handling — it checks `cfg.suspend` (fr
 
 ### Supersedes
 
-- [ADR 0023: Agent Idle Timeout](0023-agent-idle-timeout.md)
+- [ADR 0023: Agent Idle Timeout](archived/0023-agent-idle-timeout.md)

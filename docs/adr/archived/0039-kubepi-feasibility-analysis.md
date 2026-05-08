@@ -1,4 +1,4 @@
-# ADR 0037: KubePi Feasibility Analysis — Pi as Alternative Agent Runtime
+# ADR 0039: KubePi Feasibility Analysis — Pi as Alternative Agent Runtime
 
 ## Status
 

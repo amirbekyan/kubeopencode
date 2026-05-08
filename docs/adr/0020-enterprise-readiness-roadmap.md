@@ -580,7 +580,7 @@ No new KubeOpenCode features needed — document how to configure Kubernetes aud
 ## References
 
 - [Issue #105: Custom CA cert in init-containers](https://github.com/kubeopencode/kubeopencode/issues/105)
-- ADR 0013: Defer Token Usage Tracking (`docs/adr/0013-defer-token-usage-tracking.md`)
+- ADR 0013: Defer Token Usage Tracking (`docs/adr/archived/0013-defer-token-usage-tracking.md`)
 - ADR 0016: Human-in-the-Loop Design (`docs/adr/0016-human-in-the-loop-design.md`)
 - [Kubernetes Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
 - [Kubernetes Audit Logging](https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/)

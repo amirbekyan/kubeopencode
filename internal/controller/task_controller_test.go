@@ -661,7 +661,7 @@ var _ = Describe("TaskController", func() {
 		})
 	})
 
-	Context("When a Task's Job completes successfully", func() {
+	Context("When a Task's Pod completes successfully", func() {
 		It("Should update Task status to Completed", func() {
 			taskName := "test-task-success"
 			description := "# Success test"
@@ -711,7 +711,7 @@ var _ = Describe("TaskController", func() {
 		})
 	})
 
-	Context("When a Task's Job fails", func() {
+	Context("When a Task's Pod fails", func() {
 		It("Should update Task status to Failed", func() {
 			taskName := "test-task-failure"
 			description := "# Failure test"

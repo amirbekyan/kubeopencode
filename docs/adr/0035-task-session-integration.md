@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted (Phase 1 + Phase 3 implemented; Phase 2 Session Proxy API pending)
 
 ## Date
 

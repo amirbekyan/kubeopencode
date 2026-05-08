@@ -162,8 +162,12 @@ Task (single task execution)
 │   ├── agentRef: *AgentReference           (Agent reference, same namespace)
 │   └── templateRef: *AgentTemplateReference (AgentTemplate reference, alternative to agentRef)
 └── TaskExecutionStatus
+    ├── observedGeneration: int64
     ├── phase: TaskPhase
+    ├── agentRef: *AgentReference          (resolved Agent reference)
+    ├── templateRef: *AgentTemplateReference (resolved template reference)
     ├── podName: string
+    ├── session: *SessionInfo              (OpenCode session info)
     ├── startTime: Time
     ├── completionTime: Time
     └── conditions: []Condition
@@ -177,6 +181,7 @@ Agent (running AI agent instance — always creates Deployment + Service)
     ├── workspaceDir: string         (default: "/workspace")
     ├── command: []string
     ├── port: int32                  (OpenCode server port, default: 4096)
+    ├── extraPorts: []ExtraPort      (additional Service/Deployment ports for DinD, VS Code, etc.)
     ├── persistence: *PersistenceConfig  (session/workspace PVCs)
     ├── suspend: bool                (scale Deployment to 0 replicas)
     ├── standby: *StandbyConfig      (automatic suspend/resume)
@@ -197,7 +202,7 @@ Agent (running AI agent instance — always creates Deployment + Service)
 AgentTemplate (reusable blueprint for Agents and ephemeral Tasks)
 └── AgentTemplateSpec
     ├── (shares most fields with AgentSpec)
-    └── (except: profile, port, persistence, suspend, standby, templateRef)
+    └── (except: profile, port, persistence, suspend, standby, share, templateRef)
 
 CronTask (scheduled/recurring task execution)
 └── CronTaskSpec
@@ -243,22 +248,28 @@ type AgentReference struct {
 
 // ContextItem defines inline context content
 type ContextItem struct {
-    Type      ContextType       // Text, ConfigMap, Git, Runtime, or URL
-    MountPath string            // Empty = write to .kubeopencode/context.md (ignored for Runtime)
-    FileMode  *int32            // Optional file permission mode (e.g., 0755 for executable)
-    Text      string            // Content when Type is Text
-    ConfigMap *ConfigMapContext // ConfigMap when Type is ConfigMap
-    Git       *GitContext       // Git repo when Type is Git
-    Runtime   *RuntimeContext   // Platform awareness when Type is Runtime
-    URL       *URLContext       // Remote URL when Type is URL
+    Name        string            // Optional identifier for logging, XML tags, deduplication
+    Description string            // Human-readable documentation (no functional effect)
+    Type        ContextType       // Text, ConfigMap, Git, Runtime, or URL
+    MountPath   string            // Empty = write to .kubeopencode/context.md (ignored for Runtime)
+    FileMode    *int32            // Optional file permission mode (e.g., 0755 for executable)
+    Text        string            // Content when Type is Text
+    ConfigMap   *ConfigMapContext // ConfigMap when Type is ConfigMap
+    Git         *GitContext       // Git repo when Type is Git
+    Runtime     *RuntimeContext   // Platform awareness when Type is Runtime
+    URL         *URLContext       // Remote URL when Type is URL
 }
 
 type TaskExecutionStatus struct {
-    Phase          TaskPhase
-    PodName        string
-    StartTime      *metav1.Time
-    CompletionTime *metav1.Time
-    Conditions     []metav1.Condition
+    ObservedGeneration int64
+    Phase              TaskPhase
+    AgentRef           *AgentReference          // Resolved Agent reference (agentRef Tasks only)
+    TemplateRef        *AgentTemplateReference   // Resolved template reference (templateRef Tasks only)
+    PodName            string
+    Session            *SessionInfo             // OpenCode session info (agentRef Tasks only)
+    StartTime          *metav1.Time
+    CompletionTime     *metav1.Time
+    Conditions         []metav1.Condition
 }
 
 type ContextType string
@@ -276,35 +287,37 @@ type Agent struct {
 }
 
 type AgentSpec struct {
+    TemplateRef        *AgentTemplateReference
     Profile            string
     AgentImage         string
     ExecutorImage      string
     AttachImage        string
     WorkspaceDir       string
     Command            []string
-    Port               int32
-    Persistence        *PersistenceConfig
-    Suspend            bool
-    Standby            *StandbyConfig
     Contexts           []ContextItem
     Skills             []SkillSource
+    Plugins            []PluginSpec              // OpenCode plugins to load
     Config             *runtime.RawExtension
     Credentials        []Credential
-    CABundle           *CABundleConfig
-    Proxy              *ProxyConfig
-    ImagePullSecrets   []corev1.LocalObjectReference
     PodSpec            *AgentPodSpec
     ServiceAccountName string
     MaxConcurrentTasks *int32
     Quota              *QuotaConfig
+    CABundle           *CABundleConfig
+    Proxy              *ProxyConfig
+    ImagePullSecrets   []corev1.LocalObjectReference
+    Port               int32
+    ExtraPorts         []ExtraPort               // Additional Service/Deployment ports
+    Persistence        *PersistenceConfig
+    Suspend            bool
+    Standby            *StandbyConfig
     Share              *ShareConfig
-    TemplateRef        *AgentTemplateReference
 }
 
 // ShareConfig configures a shareable terminal link for an Agent
 type ShareConfig struct {
     Enabled    bool       // Enable/disable the share link
-    ExpiresAt  *Time      // Optional expiry time (link invalid after this)
+    ExpiresAt  *metav1.Time // Optional expiry time (link invalid after this)
     AllowedIPs []string   // Optional CIDR allowlist (empty = all IPs allowed)
 }
 
@@ -327,9 +340,10 @@ type KubeOpenCodeConfig struct {
 }
 
 type KubeOpenCodeConfigSpec struct {
-    SystemImage *SystemImageConfig
-    Cleanup     *CleanupConfig
-    Proxy       *ProxyConfig
+    ClusterDomain string             // Cluster domain for in-cluster URLs (default: "cluster.local")
+    SystemImage   *SystemImageConfig
+    Cleanup       *CleanupConfig
+    Proxy         *ProxyConfig
 }
 
 type CleanupConfig struct {

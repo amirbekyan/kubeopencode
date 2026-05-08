@@ -164,6 +164,6 @@ complexity.
 
 ## References
 
-- [ADR 0006: Environment Configuration for Agent Containers in SCC Environments](./0006-home-directory-for-agent-containers.md)
+- [ADR 0006: Environment Configuration for Agent Containers in SCC Environments](./archived/0006-home-directory-for-agent-containers.md)
 - [OpenShift SCC Documentation](https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html)
 - [Go os.UserHomeDir() documentation](https://pkg.go.dev/os#UserHomeDir)

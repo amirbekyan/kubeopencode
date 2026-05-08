@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0035](0035-task-session-integration.md) — Token usage tracking is now implemented via `SessionSummary.TokenUsage` in Task status (Phase 3 of ADR 0035).
 
 ## Context
 

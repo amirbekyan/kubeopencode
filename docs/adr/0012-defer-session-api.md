@@ -145,7 +145,7 @@ Before implementing Session API, the following should be in place:
 ## References
 
 - Session API design document (Manus AI, 2026-02-05)
-- ADR 0011: Agent Server Mode (`docs/adr/0011-agent-server-mode.md`)
+- ADR 0011: Agent Server Mode (`docs/adr/archived/0011-agent-server-mode.md`)
 - Agent controller: `internal/controller/agent_controller.go`
 - Server builder: `internal/controller/server_builder.go`
 - OpenCode PTY implementation: `../opencode/packages/opencode/src/pty/index.ts`
