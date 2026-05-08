@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded by [ADR 0009](0009-job-to-pod-migration.md) (2026-01-05)
+Superseded by [ADR 0009](0009-job-to-pod-migration.md)
 
 Originally Accepted (2025-12-10)
 

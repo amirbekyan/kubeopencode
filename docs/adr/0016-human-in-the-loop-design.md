@@ -711,7 +711,7 @@ in the codebase as a utility for future HITL scenarios but is not used in the de
 
 ## References
 
-- ADR 0011: Agent Server Mode (`docs/adr/0011-agent-server-mode.md`)
+- ADR 0011: Agent Server Mode (`docs/adr/archived/0011-agent-server-mode.md`)
 - ADR 0012: Defer Session API (`docs/adr/0012-defer-session-api.md`)
 - OpenCode server source: `../opencode/packages/opencode/src/server/server.ts`
 - OpenCode permission system: `../opencode/packages/opencode/src/permission/index.ts`

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (supersedes [ADR 0015](0015-repo-as-agent-dynamic-image-building.md))
+Proposed (supersedes [ADR 0015](archived/0015-repo-as-agent-dynamic-image-building.md))
 
 ## Date
 
@@ -928,7 +928,7 @@ Offer BuildKit alongside Kaniko as an optional build engine.
 - [Chainguard Kaniko Fork](https://github.com/chainguard-forks/kaniko) — Actively maintained fork
 - [BuildKit](https://github.com/moby/buildkit) — Container image builder (requires privilege escalation)
 - [go-git](https://github.com/go-git/go-git) — Pure Go Git implementation
-- [ADR 0015](0015-repo-as-agent-dynamic-image-building.md) — Dynamic image building (superseded)
+- [ADR 0015](archived/0015-repo-as-agent-dynamic-image-building.md) — Dynamic image building (superseded)
 - [ADR 0026](0026-skills.md) — Skills as a top-level Agent field
 - [ADR 0034](0034-plugin-support-and-slack-integration.md) — Plugin support
 - [Kubernetes Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/) — PSS Restricted profile

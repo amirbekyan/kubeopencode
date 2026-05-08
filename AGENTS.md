@@ -350,6 +350,8 @@ Three-tier strategy: unit (`make test`), integration (`make integration-test`, u
 
 > **IMPORTANT**: Always update ALL relevant documentation when making changes. ADRs go in `docs/adr/`.
 
+> **ADR Archive Policy**: Only active ADRs live in `docs/adr/`. Superseded, fully-implemented, and research-only ADRs are moved to `docs/adr/archived/`. When a feature fully implements an Accepted ADR, move the ADR to `archived/` and ensure key decisions are captured in `AGENTS.md`. AI agents should NOT load `docs/adr/archived/` into context unless explicitly investigating historical decisions.
+
 ## Git Workflow
 
 - **Conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
